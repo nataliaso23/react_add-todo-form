@@ -3,111 +3,100 @@ import './App.scss';
 import usersFromServer from './api/users';
 import todosFromServer from './api/todos';
 import { TodoList } from './components/TodoList';
-import { Todo } from './components/types/Todos';
 
-const findUserById = (userId: number) => {
-  return usersFromServer.find(user => user.id === userId);
-};
-
-const getPreparedTodos = () => {
-  // Não é necessário criar uma cópia do array, pois o map já retorna um novo array
-  return todosFromServer.map(todo => ({
-    ...todo,
-    user: findUserById(todo.userId) || null,
-  }));
-};
+const enrichedTodos = todosFromServer.map(todo => ({
+  ...todo,
+  user: usersFromServer.find(user => user.id === todo.userId),
+}));
 
 export const App = () => {
-  const [todos, setTodos] = useState<Todo[]>(getPreparedTodos());
-  const [selectedUserId, setSelectedUserId] = useState(0);
-  const [title, setTitle] = useState('');
-  const [titleInputError, setTitleInputError] = useState(false);
-  const [userSelectError, setUserSelectError] = useState(false);
+  const [todos, setTodos] = useState(enrichedTodos);
 
-  const reset = () => {
-    setTitle('');
-    setSelectedUserId(0);
-    setTitleInputError(false);
-    setUserSelectError(false);
+  const [title, setTitle] = useState('');
+  const [hasTitleError, setHasTitleError] = useState(false);
+
+  const [userId, setUserId] = useState(0);
+  const [hasUserIdError, setHasUserIdError] = useState(false);
+
+  const handleTitleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setTitle(event.target.value);
+    setHasTitleError(false);
   };
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>): void {
+  const handleUserIdChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setUserId(+event.target.value);
+    setHasUserIdError(false);
+  };
+
+  const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
 
-    setTitleInputError(!title);
-    setUserSelectError(!selectedUserId);
+    if (!title.trim()) {
+      setHasTitleError(true);
+    }
 
-    if (!title || !selectedUserId) {
+    if (!userId) {
+      setHasUserIdError(true);
+    }
+
+    if (!title.trim() || !userId) {
       return;
     }
 
-    setTodos(currentTodos => {
-      const newId = Math.max(...currentTodos.map(todo => todo.id)) + 1;
+    const newTodo = {
+      id: todos.length > 0 ? Math.max(...todos.map(todo => todo.id)) + 1 : 1,
+      title,
+      completed: false,
+      userId,
+      user: usersFromServer.find(user => user.id === userId),
+    };
 
-      const user = findUserById(selectedUserId);
+    setTodos([...todos, newTodo]);
 
-      const newTodo: Todo = {
-        id: newId,
-        title: title,
-        userId: selectedUserId,
-        completed: false,
-        user: user || null,
-      };
-
-      return [...currentTodos, newTodo];
-    });
-
-    reset();
-  }
-
-  function handleTitleInput(event: React.ChangeEvent<HTMLInputElement>): void {
-    setTitle(event.target.value.trimStart());
-    setTitleInputError(false);
-  }
-
-  function handleUserSelect(event: React.ChangeEvent<HTMLSelectElement>): void {
-    setSelectedUserId(Number(event.target.value));
-    setUserSelectError(false);
-  }
+    setTitle('');
+    setUserId(0);
+  };
 
   return (
     <div className="App">
       <h1>Add todo form</h1>
-      <form action="/api/todos" method="POST" onSubmit={handleSubmit}>
+
+      <form onSubmit={handleSubmit}>
         <div className="field">
-          <label htmlFor="titleInput">Title: </label>
+          <label className="label" htmlFor="post-title">
+            Title:
+          </label>
           <input
+            id="post-title"
             type="text"
-            id="titleInput"
             data-cy="titleInput"
+            placeholder="Enter a title"
             value={title}
-            onChange={handleTitleInput}
-            placeholder="title"
+            onChange={handleTitleChange}
           />
-          {titleInputError && (
-            <span className="error">Please enter a title</span>
-          )}
+          {hasTitleError && <span className="error">Please enter a title</span>}
         </div>
 
         <div className="field">
-          <label htmlFor="userSelect">User: </label>
+          <label className="label" htmlFor="post-user-id">
+            User:
+          </label>
           <select
-            id="userSelect"
+            id="post-user-id"
             data-cy="userSelect"
-            onChange={handleUserSelect}
-            value={selectedUserId}
+            value={userId}
+            onChange={handleUserIdChange}
           >
-            <option value="0" disabled>
+            <option value={0} disabled>
               Choose a user
             </option>
-
             {usersFromServer.map(user => (
-              <option key={user.id} value={user.id}>
+              <option value={user.id} key={user.id}>
                 {user.name}
               </option>
             ))}
           </select>
-          {userSelectError && (
+          {hasUserIdError && (
             <span className="error">Please choose a user</span>
           )}
         </div>
