@@ -2,19 +2,19 @@ import { useState } from 'react';
 import './App.scss';
 import usersFromServer from './api/users';
 import todosFromServer from './api/todos';
-import { TodoList } from './components/TodoList';
+import { Todo, TodoList } from './components/TodoList';
+import { v4 as uuidv4 } from 'uuid';
 
 const enrichedTodos = todosFromServer.map(todo => ({
   ...todo,
+  id: uuidv4(), // Gerando um ID único com UUID
   user: usersFromServer.find(user => user.id === todo.userId),
 }));
 
 export const App = () => {
-  const [todos, setTodos] = useState(enrichedTodos);
-
+  const [todos, setTodos] = useState<Todo[]>(enrichedTodos);
   const [title, setTitle] = useState('');
   const [hasTitleError, setHasTitleError] = useState(false);
-
   const [userId, setUserId] = useState(0);
   const [hasUserIdError, setHasUserIdError] = useState(false);
 
@@ -43,8 +43,8 @@ export const App = () => {
       return;
     }
 
-    const newTodo = {
-      id: todos.length > 0 ? Math.max(...todos.map(todo => todo.id)) + 1 : 1,
+    const newTodo: Todo = {
+      id: uuidv4(), // Gerando o id único com UUID (mantendo o tipo como string)
       title,
       completed: false,
       userId,

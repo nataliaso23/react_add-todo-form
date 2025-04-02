@@ -1,6 +1,7 @@
 export * from './TodoList';
+
 export interface Todo {
-  id: number;
+  id: string; // id agora é string para suportar UUID
   title: string;
   completed: boolean;
   userId: number;
@@ -10,5 +11,6 @@ export interface Todo {
 export interface User {
   id: number;
   name: string;
+  username: string;
   email: string;
 }
